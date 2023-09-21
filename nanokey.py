@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# import mido library
 import mido
 
 # List all available MIDI devices.
