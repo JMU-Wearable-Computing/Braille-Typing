@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-# import mido library
 import mido
 
 # List all available MIDI devices.
@@ -18,12 +17,11 @@ inport = mido.open_input(my_device_name)
 
 # Map notes to key indices.
 keys = {
-    72: -1,
-    70: 0,
-    68: 1,
-    66: 2,
-    63: 3,
-    61: 3,
+    70: 3,
+    68: 2,
+    66: 1,
+    63: 0,
+    61: 0,
     58: 4,
     56: 5,
     54: 6,
@@ -45,9 +43,9 @@ while index >= 0:
     if message.note in keys:
         index = keys[message.note]
         if index >= 0:
-            print("Index is: ",index)
-            #status = display[:index] + "\u25A3" + display[index + 1:]
-            #print(f"\t{status}", end="\r")
+            print('Note is: ', message.note, 'Index is: ', index)
+            # status = display[:index] + "\u25A3" + display[index + 1:]
+            # print(f"\t{status}", end="\r")
     else:
         print(f'Unknown {message.note}')
 
