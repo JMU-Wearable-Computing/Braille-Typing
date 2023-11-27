@@ -8,12 +8,50 @@ import mido
 import time
 import numpy as np
 
+log_file_path = "cell_to_letter_results_"+str(time.time()).split(".")[0]+".csv"
+datalog = []
 
-def display_image(path_to_image, title):
+keys_to_letter = {
+    1: 'A',
+    3: 'B',
+    5: 'C',
+    10: 'D',
+    6: 'E'
+}
+
+
+def log_new_cell(displayed_cell):
+    logged_time = time.time()
+    logged_string = str(logged_time) + "," + str(displayed_cell)
+    datalog.append(logged_string)
+
+
+def log_guess(correct_letter, guessed_keys):
+    logged_time = time.time()
+    key_sum = sum(guessed_keys)
+    if key_sum in keys_to_letter:
+        guessed_letter = keys_to_letter[key_sum]
+    else:
+        guessed_letter = guessed_keys
+
+    logged_string = str(logged_time) + ',' + str(correct_letter) + ',' + str(guessed_letter)
+    datalog.append(logged_string)
+
+
+def write_log_disk(_log_file_path, _datalog):
+    file = open(_log_file_path, 'w')
+    for s in _datalog:
+        file.writelines(s + "\n")
+
+    file.close()
+
+
+def display_image(path_to_image, title, wait_time=1):
     '''
     Display image with openCV
     :param path_to_image: Filepath for image to be displayed
     :param title: Title of window (use the same name to refresh)
+    :param wait_time: Wait time to display the image (Default is 1ms)
     :return: None
     '''
     # Display Random Image
@@ -26,7 +64,7 @@ def display_image(path_to_image, title):
     cv2.imshow(title, imS)
 
     # wait 1ms to allow OpenCV to draw the image
-    cv2.waitKey(1)
+    cv2.waitKey(wait_time)
 
 
 # List all available MIDI devices.
@@ -57,23 +95,23 @@ notes_to_cell = {
     62: 7,
 }
 
-'''letter_to_cell = {
+letter_to_cell = {
     'a': [1],
     'b': [1, 2],
     'c': [1, 4],
     'd': [1, 4, 5],
     'e': [1, 5]
-}'''
+}
 
-#press 62 (7) if they got it correct, any other key for false
-letter_to_cell = {
+# press 62 (7) if they got it correct, any other key for false
+'''letter_to_cell = {
     'a': [7],
     'b': [7],
     'c': [7],
     'd': [7],
     'e': [7]
 
-}
+}'''
 window_title = "Flash Cards Quiz Cell to Letter"
 
 available_letters = ['a', 'b', 'c', 'd', 'e']
@@ -101,6 +139,8 @@ while not done:
 
     random_letter = available_letters[new_random_value]
 
+    log_new_cell(random_letter)
+
     filepath = "Braille_Cell_" + random_letter + ".png"
 
     # given selected letter, set the list of acceptable brailer keys from dictionary
@@ -123,10 +163,12 @@ while not done:
         first_key_received = False
         while not first_key_received:
             message = inport.receive(block=True)
-            if message.type == 'note_on':
+            if message.type == 'note_on' and message.note in notes_to_cell:
                 braille_key = notes_to_cell[message.note]
                 received_brailler_keys.append(braille_key)
                 first_key_received = True
+            else:
+                dummy=0
 
         # wait for the first note_on message via inport.receive(). Place key in list
         # message = inport.receive()
@@ -157,7 +199,7 @@ while not done:
             # check the time again
             current_time = time.time_ns()
 
-        #print('It took', [abs(start_time-current_time)],'seconds to receive a key press')
+        # print('It took', [abs(start_time-current_time)],'seconds to receive a key press')
         # timeout loop is complete, compare the set of received keys to those in the dictionary
 
         print('Keys received ', received_brailler_keys, 'at times ', key_pressed_times)
@@ -165,28 +207,34 @@ while not done:
         # allowing keys to be pressed in any order
         received_brailler_keys.sort()
 
-
         # look up correct keys from the dictionary
         # logic to compare keys
+        log_guess(random_letter, received_brailler_keys)
+
         if correct_brailler_keys == received_brailler_keys:
             correct_cells_pressed = True
             # num_correct += 1
             print('Correct in ', num_attempts, ' attempts')
             accuracy_list.append(1)
+            display_image("green_check.png", window_title, 500)
+
+
         else:
             print('Incorrect. Answer: ', correct_brailler_keys, 'Received: ', received_brailler_keys)
             accuracy_list.append(0)
+            display_image("red_x.png", window_title, 500)
+            display_image(filepath, window_title)
 
         # have enough trial occurred for the overall study and have enough trials occurred within the window
         if len(accuracy_list) >= num_trials and len(accuracy_list) >= window_length:
             # current_accuracy = np.mean(accuracy_list[-10:0])
             window = accuracy_list[-window_length:]
 
-            #if len(accuracy_list) == window_length:
+            # if len(accuracy_list) == window_length:
             #    window = accuracy_list
 
             current_accuracy = sum(window) / len(window)
-            #print('Your window accuracy is', current_accuracy)
+            # print('Your window accuracy is', current_accuracy)
 
             if current_accuracy >= successful_average:
                 done = True
@@ -194,7 +242,9 @@ while not done:
                 print('Your overall accuracy is', sum(accuracy_list) / len(accuracy_list))
                 print('The total number of attempts is', len(accuracy_list))
 
-
     num_shown = num_shown + 1
     old_random_value = new_random_value
     # end of main loop for entire experimental trials
+
+print("Now we're done!")
+write_log_disk(log_file_path, datalog)

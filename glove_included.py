@@ -7,9 +7,11 @@ import mido
 import time
 
 from glove import Glove
+max_glove_intensity = 0.75
+motor_off = 0
 
-
-def display_image(path_to_image, title):
+imS=None
+def display_image(path_to_image, title, wait_time = 1):
     '''
     Display image with openCV
     :param path_to_image: Filepath for image to be displayed
@@ -26,14 +28,14 @@ def display_image(path_to_image, title):
     cv2.imshow(title, imS)
 
     # wait 1ms to allow OpenCV to draw the image
-    cv2.waitKey(1)
+    cv2.waitKey(wait_time)
 
 # Adding Gloves
 
 # Define gloves
 print('Attempting to connect to gloves...')
 glove_left = Glove(device_id=2, port=8888, acceleration=False, verbose=False)
-glove_right = Glove(device_id=4, port=8888, acceleration=False, verbose=False)
+glove_right = Glove(device_id=1, port=8888, acceleration=False, verbose=False)
 
 # Connect to gloves
 if not glove_left.connect():
@@ -123,26 +125,26 @@ while not done:
     if random_letter == 'a':
         glove_right.set_motors([])
         glove_left.set_motors([])
-        glove_left.set_motors([0, 0, 1])
+        glove_left.set_motors([motor_off, motor_off, max_glove_intensity])
     elif random_letter == 'b':
         glove_right.set_motors([])
         glove_left.set_motors([])
-        glove_left.set_motors([0, 1, 1])
+        glove_left.set_motors([motor_off, max_glove_intensity, max_glove_intensity])
     elif random_letter == 'c':
         glove_right.set_motors([])
         glove_left.set_motors([])
-        glove_left.set_motors([0, 0, 1])
-        glove_right.set_motors([1, 0, 0])
+        glove_left.set_motors([motor_off, motor_off, max_glove_intensity])
+        glove_right.set_motors([motor_off, motor_off, motor_off,max_glove_intensity])
     elif random_letter == 'd':
         glove_right.set_motors([])
         glove_left.set_motors([])
-        glove_left.set_motors([0, 0, 1])
-        glove_right.set_motors([1, 1, 0])
+        glove_left.set_motors([motor_off, motor_off, max_glove_intensity])
+        glove_right.set_motors([motor_off, max_glove_intensity, motor_off, max_glove_intensity])
     elif random_letter == 'e':
         glove_right.set_motors([])
         glove_left.set_motors([])
-        glove_left.set_motors([0, 0, 1])
-        glove_right.set_motors([0, 1, 0])
+        glove_left.set_motors([motor_off, motor_off, max_glove_intensity])
+        glove_right.set_motors([motor_off, max_glove_intensity, motor_off])
 
     # events.append({'foo': 'sdfas', 'time': None})
     print('The random letter selected is', random_letter, ' at ', time.time())
@@ -158,7 +160,7 @@ while not done:
         first_key_received = False
         while not first_key_received:
             message = inport.receive(block=True)
-            if message.type == 'note_on':
+            if message.type == 'note_on' and message.note in notes_to_cell:
                 braille_key = notes_to_cell[message.note]
                 received_brailler_keys.append(braille_key)
                 first_key_received = True
@@ -214,9 +216,13 @@ while not done:
             # num_correct += 1
             print('Correct in ', num_attempts, ' attempts')
             accuracy_list.append(1)
+            display_image("green_check.png", window_title, 500)
+
         else:
             print('Incorrect. Answer: ', correct_brailler_keys, 'Received: ', received_brailler_keys)
             accuracy_list.append(0)
+            display_image("red_x.png", window_title, 500)
+            display_image(filepath, window_title)
 
         # have enough trial occurred for the overall study and have enough trials occurred within the window
         if len(accuracy_list) >= num_trials and len(accuracy_list) >= window_length:

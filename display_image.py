@@ -22,6 +22,7 @@ while counter < 10:
     img = cv2.imread(filepath, cv2.IMREAD_ANYCOLOR)
     #Resize Image
     imS = cv2.resize(img, (600, 850))
+    cv2.circle(imS, (100, 63), 55, (0, 0, 255), -1)
     cv2.imshow(window_title, imS)
     cv2.waitKey(0)
 

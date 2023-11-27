@@ -9,43 +9,6 @@ import time
 import numpy as np
 
 
-log_file_path = "letter_to_keys_results_"+str(time.time()).split(".")[0]+".csv"
-datalog = []
-
-keys_to_letter = {
-    1: 'A',
-    3: 'B',
-    5: 'C',
-    10: 'D',
-    6: 'E'
-}
-
-def log_new_cell(displayed_cell):
-    logged_time = time.time()
-    logged_string = str(logged_time)+","+str(displayed_cell)
-    datalog.append(logged_string)
-
-def log_guess(correct_letter, guessed_keys):
-    logged_time = time.time()
-    key_sum = sum(guessed_keys)
-    if key_sum in keys_to_letter:
-        guessed_letter = keys_to_letter[key_sum]
-    else:
-        guessed_letter = guessed_keys
-
-    logged_string = str(logged_time) + ',' + str(correct_letter) + ',' + str(guessed_letter)
-    datalog.append(logged_string)
-
-
-def write_log_disk(_log_file_path, _datalog):
-    file = open(_log_file_path, 'w')
-    for s in _datalog:
-        file.writelines(s + "\n")
-
-    file.close()
-
-
-
 def display_image(path_to_image, title, wait_time=1):
     '''
     Display image with openCV
@@ -98,11 +61,28 @@ letter_to_cell = {
     'B': [1, 2],
     'C': [1, 4],
     'D': [1, 4, 5],
-    'E': [1, 5]
+    'E': [1, 5],
+    'a': [7],
+    'b': [7],
+    'c': [7],
+    'd': [7],
+    'e': [7]
 }
-window_title = "Flash Cards Quiz Letter to Keys"
 
-available_letters = ['A', 'B', 'C', 'D', 'E']
+
+#press 62 (7) if they got it correct, any other key for false
+"""letter_to_cell = {
+    'a': [7],
+    'b': [7],
+    'c': [7],
+    'd': [7],
+    'e': [7]
+}"""
+
+window_title = "Flash Cards Quiz Phase 1"
+
+available_letters = ['A', 'B', 'C', 'D', 'E','a','b','c','d','e']
+
 
 # begin loop to listen for 10x nanokey presses
 num_shown = 0
@@ -127,7 +107,7 @@ while not done:
 
     random_letter = available_letters[new_random_value]
 
-    filepath = random_letter + ".png"
+    filepath = "Flashcard_" + random_letter + ".png"
 
     # given selected letter, set the list of acceptable brailer keys from dictionary
     correct_brailler_keys = letter_to_cell[random_letter]
@@ -209,8 +189,6 @@ while not done:
             display_image(filepath, window_title)
 
 
-        log_guess(random_letter, received_brailler_keys)
-
         # have enough trial occurred for the overall study and have enough trials occurred within the window
         if len(accuracy_list) >= num_trials and len(accuracy_list) >= window_length:
             # current_accuracy = np.mean(accuracy_list[-10:0])
@@ -232,7 +210,3 @@ while not done:
     num_shown = num_shown + 1
     old_random_value = new_random_value
     # end of main loop for entire experimental trials
-
-
-print("Now we're done!")
-write_log_disk(log_file_path, datalog)

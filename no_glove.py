@@ -1,51 +1,13 @@
 # the goal of this script is to display a random letter and based on an input from keyboard notify the user if they
 # incorrect or correct by showing red or green.
 import random
-import os
 import sys  # to access the system
 import cv2
 import mido
 import time
-import numpy as np
 
 
-log_file_path = "letter_to_keys_results_"+str(time.time()).split(".")[0]+".csv"
-datalog = []
-
-keys_to_letter = {
-    1: 'A',
-    3: 'B',
-    5: 'C',
-    10: 'D',
-    6: 'E'
-}
-
-def log_new_cell(displayed_cell):
-    logged_time = time.time()
-    logged_string = str(logged_time)+","+str(displayed_cell)
-    datalog.append(logged_string)
-
-def log_guess(correct_letter, guessed_keys):
-    logged_time = time.time()
-    key_sum = sum(guessed_keys)
-    if key_sum in keys_to_letter:
-        guessed_letter = keys_to_letter[key_sum]
-    else:
-        guessed_letter = guessed_keys
-
-    logged_string = str(logged_time) + ',' + str(correct_letter) + ',' + str(guessed_letter)
-    datalog.append(logged_string)
-
-
-def write_log_disk(_log_file_path, _datalog):
-    file = open(_log_file_path, 'w')
-    for s in _datalog:
-        file.writelines(s + "\n")
-
-    file.close()
-
-
-
+imS=None
 def display_image(path_to_image, title, wait_time=1):
     '''
     Display image with openCV
@@ -57,7 +19,7 @@ def display_image(path_to_image, title, wait_time=1):
     img = cv2.imread(path_to_image, cv2.IMREAD_ANYCOLOR)
 
     # Resize Image
-    imS = cv2.resize(img, (400, 550))
+    imS = cv2.resize(img, (600, 850))
 
     # draw the re-sized image
     cv2.imshow(title, imS)
@@ -94,15 +56,15 @@ notes_to_cell = {
 }
 
 letter_to_cell = {
-    'A': [1],
-    'B': [1, 2],
-    'C': [1, 4],
-    'D': [1, 4, 5],
-    'E': [1, 5]
+    'a': [1],
+    'b': [1, 2],
+    'c': [1, 4],
+    'd': [1, 4, 5],
+    'e': [1, 5]
 }
-window_title = "Flash Cards Quiz Letter to Keys"
+window_title = "Braille Flash Cards"
 
-available_letters = ['A', 'B', 'C', 'D', 'E']
+available_letters = ['a', 'b', 'c', 'd', 'e']
 
 # begin loop to listen for 10x nanokey presses
 num_shown = 0
@@ -127,13 +89,15 @@ while not done:
 
     random_letter = available_letters[new_random_value]
 
-    filepath = random_letter + ".png"
+    filepath = "letter_" + random_letter + ".png"
 
     # given selected letter, set the list of acceptable brailer keys from dictionary
     correct_brailler_keys = letter_to_cell[random_letter]
 
     # display image with openCV given the filepath and window title
     display_image(filepath, window_title)
+
+
 
     # events.append({'foo': 'sdfas', 'time': None})
     print('The random letter selected is', random_letter, ' at ', time.time())
@@ -170,6 +134,10 @@ while not done:
 
         while abs(current_time - start_time) < timeout:
 
+            # poll keyboard with receive(block=False)
+            # check the return for this call. If note_on, place in list. Else, ignore
+            # check the current system time, if timer has expired, leave loop
+
             # wait for a message from the keyboard (blocking call)
             second_message = inport.receive(block=False)
 
@@ -183,7 +151,7 @@ while not done:
             # check the time again
             current_time = time.time_ns()
 
-        #print('It took', [abs(start_time-current_time)],'seconds to receive a key press')
+        # print('It took', [abs(start_time-current_time)],'seconds to receive a key press')
         # timeout loop is complete, compare the set of received keys to those in the dictionary
 
         print('Keys received ', received_brailler_keys, 'at times ', key_pressed_times)
@@ -191,6 +159,8 @@ while not done:
         # allowing keys to be pressed in any order
         received_brailler_keys.sort()
 
+        # print('Received: ', received_brailler_keys)
+        # print('Correct: ', correct_brailler_keys)
 
         # look up correct keys from the dictionary
         # logic to compare keys
@@ -201,26 +171,22 @@ while not done:
             accuracy_list.append(1)
             display_image("green_check.png", window_title, 500)
 
-
         else:
             print('Incorrect. Answer: ', correct_brailler_keys, 'Received: ', received_brailler_keys)
             accuracy_list.append(0)
             display_image("red_x.png", window_title, 500)
             display_image(filepath, window_title)
 
-
-        log_guess(random_letter, received_brailler_keys)
-
         # have enough trial occurred for the overall study and have enough trials occurred within the window
         if len(accuracy_list) >= num_trials and len(accuracy_list) >= window_length:
             # current_accuracy = np.mean(accuracy_list[-10:0])
             window = accuracy_list[-window_length:]
 
-            #if len(accuracy_list) == window_length:
+            # if len(accuracy_list) == window_length:
             #    window = accuracy_list
 
             current_accuracy = sum(window) / len(window)
-            #print('Your window accuracy is', current_accuracy)
+            # print('Your window accuracy is', current_accuracy)
 
             if current_accuracy >= successful_average:
                 done = True
@@ -228,11 +194,19 @@ while not done:
                 print('Your overall accuracy is', sum(accuracy_list) / len(accuracy_list))
                 print('The total number of attempts is', len(accuracy_list))
 
+        # poll and read the message queue until empty?!
+
+        ### end of loop for a single letter
+
+        # looping through all the objects in the list/dict, grabbing the value and letter
+        # for key,val in letter_to_cell:
+        #    if received_keys == val:
+        #        print('Letter is: ', key, 'Cell Number is: ', received_keys)
+
+        #        break
+
+        #    else:
+        #        print('Invalid Key')
 
     num_shown = num_shown + 1
     old_random_value = new_random_value
-    # end of main loop for entire experimental trials
-
-
-print("Now we're done!")
-write_log_disk(log_file_path, datalog)
